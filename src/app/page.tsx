@@ -9,7 +9,7 @@ import { Footer } from "@/sections/footer";
 
 export default function Home() {
   return (
-    <main className="relative">
+    <main className="relative z-10">
       <Hero />
       <Story />
       <Menu />

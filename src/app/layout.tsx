@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Archivo_Black, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScroll } from "@/components/smooth-scroll";
-import { Cursor } from "@/components/cursor";
 import { Nav } from "@/components/nav";
+import { R3FRoot } from "@/three/r3f-root";
 
 const display = Archivo_Black({
   subsets: ["latin"],
@@ -44,8 +44,8 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
       <body className="grain">
+        <R3FRoot />
         <SmoothScroll>
-          <Cursor />
           <Nav />
           {children}
         </SmoothScroll>

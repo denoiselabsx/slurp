@@ -1,25 +1,57 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
-import { useMemo } from "react";
-import { Suspense, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { FloatingBowl } from "@/three/ramen-bowl";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { PerspectiveCamera } from "@react-three/drei";
+import { Suspense } from "react";
+import { HeroBowlScene } from "@/three/bowl-scene";
 
-function MouseRotator({ children }: { children: React.ReactNode }) {
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+type ProgressBox = { value: number };
+
+function HeroCamera({ progress }: { progress: ProgressBox }) {
+  const { camera, size } = useThree();
+  const isMobile = size.width < 768;
+
+  useFrame(() => {
+    const p = progress.value;
+    // Bowl at world origin (0,0,0). To project the bowl to the right side of
+    // the canvas, the camera looks LEFT of the bowl. A larger camera-distance
+    // makes the bowl appear smaller on screen, leaving margin around it.
+    // Tuned so bowl occupies roughly viewport x: 62% → 90% on desktop.
+    const startPos = isMobile
+      ? new THREE.Vector3(0, 1.3, 4.6)
+      : new THREE.Vector3(-1.7, 1.0, 4.6);
+    const endPos = isMobile
+      ? new THREE.Vector3(0, 2.2, 3.2)
+      : new THREE.Vector3(-1.1, 1.6, 3.6);
+    const pos = startPos.clone().lerp(endPos, p);
+    camera.position.lerp(pos, 0.18);
+    const target = isMobile
+      ? new THREE.Vector3(0, 0, 0)
+      : new THREE.Vector3(-1.7, 0, 0);
+    camera.lookAt(target);
+  });
+  return null;
+}
+
+function MouseTilt({ children }: { children: React.ReactNode }) {
   const group = useRef<THREE.Group>(null);
   const target = useRef({ x: 0, y: 0 });
   const { size } = useThree();
 
   useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const onMove = (e: PointerEvent) => {
       const nx = (e.clientX / size.width) * 2 - 1;
       const ny = (e.clientY / size.height) * 2 - 1;
-      target.current.x = ny * 0.25;
-      target.current.y = nx * 0.6;
+      target.current.x = ny * 0.18;
+      target.current.y = nx * 0.45;
     };
     window.addEventListener("pointermove", onMove);
     return () => window.removeEventListener("pointermove", onMove);
@@ -27,59 +59,24 @@ function MouseRotator({ children }: { children: React.ReactNode }) {
 
   useFrame(() => {
     if (!group.current) return;
-    group.current.rotation.x += (target.current.x - group.current.rotation.x) * 0.06;
-    group.current.rotation.y += (target.current.y - group.current.rotation.y) * 0.06;
+    group.current.rotation.x +=
+      (target.current.x - group.current.rotation.x) * 0.06;
+    group.current.rotation.y +=
+      (target.current.y - group.current.rotation.y) * 0.06;
   });
 
-  return <group ref={group}>{children}</group>;
-}
-
-function ResponsiveBowl() {
-  const { size } = useThree();
-  const isMobile = size.width < 768;
-  const props = useMemo(() => {
-    if (isMobile) {
-      // Center the bowl behind the headline, small and lower-third
-      return { position: [0, -1.1, 0] as [number, number, number], scale: 0.7 };
-    }
-    return { position: [1.7, -0.4, 0] as [number, number, number], scale: 0.85 };
-  }, [isMobile]);
-
-  return (
-    <>
-      <FloatingBowl position={props.position} scale={props.scale} />
-      <ContactShadows
-        position={[props.position[0], props.position[1] - 0.85 * props.scale, props.position[2]]}
-        opacity={0.32}
-        scale={4.5}
-        blur={2.6}
-        far={3}
-        color="#1a1410"
-      />
-    </>
-  );
-}
-
-function ScrollScaler({ children }: { children: React.ReactNode }) {
-  const group = useRef<THREE.Group>(null);
-  useFrame(() => {
-    if (!group.current) return;
-    const y = window.scrollY;
-    const vh = window.innerHeight;
-    const p = Math.min(1, y / vh);
-    // Bowl shrinks + drifts down + tilts as you leave the hero
-    group.current.position.y = -p * 3.0;
-    group.current.scale.setScalar(Math.max(0.001, 1 - p * 0.9));
-    group.current.rotation.z = p * 0.4;
-  });
   return <group ref={group}>{children}</group>;
 }
 
 export function Hero() {
-  const root = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLElement>(null);
+  const progress = useRef<ProgressBox>({ value: 0 });
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
+  useEffect(() => setMounted(true), []);
+
+  useGSAP(
+    () => {
       gsap.fromTo(
         ".hero-reveal > span",
         { yPercent: 110, rotate: 6 },
@@ -95,7 +92,14 @@ export function Hero() {
       gsap.fromTo(
         ".hero-sticker",
         { scale: 0, rotate: -30, opacity: 0 },
-        { scale: 1, rotate: -2, opacity: 1, duration: 0.7, delay: 0.6, ease: "back.out(2)" },
+        {
+          scale: 1,
+          rotate: -2,
+          opacity: 1,
+          duration: 0.7,
+          delay: 0.55,
+          ease: "back.out(2)",
+        },
       );
       gsap.fromTo(
         ".hero-meta",
@@ -104,32 +108,56 @@ export function Hero() {
           y: 0,
           opacity: 1,
           duration: 0.8,
-          delay: 0.9,
+          delay: 0.85,
           stagger: 0.1,
           ease: "expo.out",
         },
       );
+
+      const trigger = ScrollTrigger.create({
+        trigger: root.current,
+        start: "top top",
+        end: "bottom top",
+        scrub: 0.6,
+        onUpdate: (self) => {
+          progress.current.value = self.progress;
+        },
+      });
+
       gsap.to(".hero-content", {
         scrollTrigger: {
-          trigger: ".hero-section",
+          trigger: root.current,
           start: "top top",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.6,
         },
-        y: -80,
+        y: -100,
         opacity: 0,
+        ease: "none",
       });
-    }, root);
-    return () => ctx.revert();
-  }, []);
+
+      gsap.to(".hero-canvas", {
+        scrollTrigger: {
+          trigger: root.current,
+          start: "top top",
+          end: "bottom 60%",
+          scrub: 0.6,
+        },
+        opacity: 0,
+        ease: "none",
+      });
+
+      return () => trigger.kill();
+    },
+    { scope: root },
+  );
 
   return (
     <section
       id="top"
-      className="hero-section relative min-h-screen w-full overflow-hidden bg-cream"
       ref={root}
+      className="hero-section relative min-h-[100svh] w-full overflow-hidden bg-cream"
     >
-      {/* Background mega-type — very subtle */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 display whitespace-nowrap select-none"
@@ -145,44 +173,33 @@ export function Hero() {
         </div>
       </div>
 
-      {/* 3D Canvas — full bleed, clipped by section's overflow-hidden */}
-      <div className="absolute inset-0">
-        <Canvas
-          shadows
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true }}
-          style={{ background: "transparent" }}
-          camera={{ position: [0, 0.5, 4.5], fov: 35 }}
-        >
-          <ambientLight intensity={0.65} />
-          <directionalLight
-            position={[3, 6, 4]}
-            intensity={1.5}
-            castShadow
-            shadow-mapSize={[1024, 1024]}
-          />
-          <directionalLight position={[-3, 2, -2]} intensity={0.6} color="#ff8a4a" />
-          <spotLight
-            position={[0, 5, 2]}
-            intensity={1.2}
-            angle={0.5}
-            penumbra={0.8}
-            color="#ffd699"
-          />
-
-          <Suspense fallback={null}>
-            <ScrollScaler>
-              <MouseRotator>
-                <ResponsiveBowl />
-              </MouseRotator>
-            </ScrollScaler>
-            <Environment preset="warehouse" environmentIntensity={0.5} />
-          </Suspense>
-        </Canvas>
+      {/* 3D Canvas — full bleed, fades on scroll */}
+      <div className="hero-canvas absolute inset-0 pointer-events-none">
+        {mounted && (
+          <Canvas
+            shadows
+            dpr={[1, 1.75]}
+            gl={{
+              antialias: false,
+              powerPreference: "high-performance",
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 1.15,
+              alpha: true,
+            }}
+            style={{ background: "transparent" }}
+          >
+            <PerspectiveCamera makeDefault position={[0.2, 1.0, 3.2]} fov={35} />
+            <HeroCamera progress={progress.current} />
+            <Suspense fallback={null}>
+              <MouseTilt>
+                <HeroBowlScene />
+              </MouseTilt>
+            </Suspense>
+          </Canvas>
+        )}
       </div>
 
-      {/* Content overlay */}
-      <div className="hero-content relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-between px-5 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 md:px-10 md:pt-32">
+      <div className="hero-content relative z-10 mx-auto flex min-h-[100svh] max-w-[1600px] flex-col justify-between px-5 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 md:px-10 md:pt-32">
         <div>
           <span className="hero-sticker sticker text-chili text-[10px] sm:text-xs">
             <span className="size-1.5 rounded-full bg-chili" />
@@ -190,10 +207,9 @@ export function Hero() {
           </span>
         </div>
 
-        {/* Headline — three stacked "slurp." words. On mobile, sit at left over the bowl bg. */}
         <h1
           className="display text-char leading-[0.85] tracking-tight"
-          style={{ fontSize: "clamp(3.2rem, 13vw, 13rem)" }}
+          style={{ fontSize: "clamp(3rem, 13vw, 13rem)" }}
         >
           <span className="hero-reveal block overflow-hidden">
             <span className="block whitespace-nowrap">slurp.</span>
@@ -223,23 +239,10 @@ export function Hero() {
                 ↓
               </span>
             </a>
-            <a
-              href="#visit"
-              className="hidden md:inline-flex items-center gap-2 text-sm font-mono uppercase tracking-wider text-char/70 hover:text-chili transition-colors"
-            >
-              Map →
-            </a>
           </div>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-2 text-char/60">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em]">
-          Scroll
-        </span>
-        <span className="block h-10 w-px bg-char/40 animate-pulse" />
-      </div>
     </section>
   );
 }

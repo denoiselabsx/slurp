@@ -11,45 +11,47 @@ if (typeof window !== "undefined") {
 
 export function SmoothScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
 
     let lenis: Lenis | null = null;
-    let rafId: number | null = null;
-
-    if (!reduce) {
-      try {
-        lenis = new Lenis({
-          duration: 1.1,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: true,
-          wheelMultiplier: 1,
-          touchMultiplier: 1.5,
-        });
-
-        const raf = (time: number) => {
-          lenis?.raf(time);
-          rafId = requestAnimationFrame(raf);
-        };
-        rafId = requestAnimationFrame(raf);
-
-        lenis.on("scroll", () => ScrollTrigger.update());
-      } catch (err) {
-        console.warn("[SmoothScroll] Lenis init failed; falling back to native scroll.", err);
-        lenis = null;
-      }
+    try {
+      lenis = new Lenis({
+        autoRaf: false,
+        lerp: 0.1,
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1.4,
+        syncTouch: false,
+      });
+    } catch (err) {
+      console.warn("[SmoothScroll] Lenis init failed; native scroll only.", err);
+      return;
     }
 
-    // Always refresh ScrollTrigger after layout settles (fonts, images, R3F mount)
+    const onScroll = () => ScrollTrigger.update();
+    lenis.on("scroll", onScroll);
+
+    const tickerFn = (time: number) => {
+      lenis?.raf(time * 1000);
+    };
+    gsap.ticker.add(tickerFn);
+    gsap.ticker.lagSmoothing(0);
+
+    // Multi-stage refresh: after fonts, after first paint, after deferred loads
     const refresh = () => ScrollTrigger.refresh();
-    const t1 = window.setTimeout(refresh, 200);
-    const t2 = window.setTimeout(refresh, 1000);
-    const t3 = window.setTimeout(refresh, 2200);
+    const refreshes: number[] = [];
+    refreshes.push(window.setTimeout(refresh, 300));
+    refreshes.push(window.setTimeout(refresh, 1200));
+    refreshes.push(window.setTimeout(refresh, 2800));
+    if ("fonts" in document) {
+      document.fonts.ready.then(refresh).catch(() => {});
+    }
 
     return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-      if (rafId !== null) cancelAnimationFrame(rafId);
+      gsap.ticker.remove(tickerFn);
+      refreshes.forEach(window.clearTimeout);
       lenis?.destroy();
     };
   }, []);
