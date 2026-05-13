@@ -107,31 +107,29 @@ export function Nav() {
                 : "bg-cream/80 backdrop-blur border border-char/15 text-char"
             }`}
           >
-            {/* Two absolutely-positioned bars, both anchored at the button's
-                exact center. When closed they offset vertically (hamburger);
-                when open they rotate to form a perfectly aligned X. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 block h-[2.5px] w-6 rounded-full transition-transform duration-300 ease-out"
-              style={{
-                background: open ? "#d83a1c" : "#1a1410",
-                transformOrigin: "center",
-                transform: open
-                  ? "translate(-50%, -50%) rotate(45deg)"
-                  : "translate(-50%, -200%) rotate(0deg)",
-              }}
-            />
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 block h-[2.5px] w-6 rounded-full transition-transform duration-300 ease-out"
-              style={{
-                background: open ? "#d83a1c" : "#1a1410",
-                transformOrigin: "center",
-                transform: open
-                  ? "translate(-50%, -50%) rotate(-45deg)"
-                  : "translate(-50%, 100%) rotate(0deg)",
-              }}
-            />
+            {/* Two identical bars, absolutely centered. Identical box, identical
+                color, identical transform-origin — only the transform differs.
+                Sub-pixel rendering hazard avoided by using whole-pixel offsets. */}
+            {[0, 1].map((i) => (
+              <span
+                key={i}
+                aria-hidden
+                className="pointer-events-none absolute block rounded-full transition-transform duration-300 ease-out"
+                style={{
+                  width: "24px",
+                  height: "2px",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-12px",
+                  marginTop: "-1px",
+                  background: open ? "#d83a1c" : "#1a1410",
+                  transformOrigin: "center center",
+                  transform: open
+                    ? `rotate(${i === 0 ? 45 : -45}deg)`
+                    : `translateY(${i === 0 ? -6 : 6}px)`,
+                }}
+              />
+            ))}
           </button>
         </div>
       </header>
