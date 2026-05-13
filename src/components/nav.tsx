@@ -107,41 +107,31 @@ export function Nav() {
                 : "bg-cream/80 backdrop-blur border border-char/15 text-char"
             }`}
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 22 22"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              className="overflow-visible"
-            >
-              {/* Top line: horizontal when closed, diagonal when open */}
-              <line
-                x1="3"
-                y1="8"
-                x2="19"
-                y2="8"
-                style={{
-                  transformOrigin: "11px 11px",
-                  transform: open ? "translateY(3px) rotate(45deg)" : "translateY(0) rotate(0)",
-                  transition: "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              />
-              {/* Bottom line: horizontal when closed, opposite diagonal when open */}
-              <line
-                x1="3"
-                y1="14"
-                x2="19"
-                y2="14"
-                style={{
-                  transformOrigin: "11px 11px",
-                  transform: open ? "translateY(-3px) rotate(-45deg)" : "translateY(0) rotate(0)",
-                  transition: "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              />
-            </svg>
+            {/* Two absolutely-positioned bars, both anchored at the button's
+                exact center. When closed they offset vertically (hamburger);
+                when open they rotate to form a perfectly aligned X. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 block h-[2.5px] w-6 rounded-full transition-transform duration-300 ease-out"
+              style={{
+                background: open ? "#d83a1c" : "#1a1410",
+                transformOrigin: "center",
+                transform: open
+                  ? "translate(-50%, -50%) rotate(45deg)"
+                  : "translate(-50%, -200%) rotate(0deg)",
+              }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 block h-[2.5px] w-6 rounded-full transition-transform duration-300 ease-out"
+              style={{
+                background: open ? "#d83a1c" : "#1a1410",
+                transformOrigin: "center",
+                transform: open
+                  ? "translate(-50%, -50%) rotate(-45deg)"
+                  : "translate(-50%, 100%) rotate(0deg)",
+              }}
+            />
           </button>
         </div>
       </header>
