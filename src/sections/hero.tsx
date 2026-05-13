@@ -262,15 +262,18 @@ export function Hero() {
       </div>
 
       <div className="hero-content relative z-10 mx-auto flex min-h-[100svh] max-w-[1600px] flex-col justify-between px-5 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 md:px-10 md:pt-32">
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           <span className="hero-sticker sticker text-chili text-[10px] sm:text-xs">
-            <span className="size-1.5 rounded-full bg-chili" />
-            Open until 2am · Thu–Sat
+            <span className="size-1.5 rounded-full bg-chili animate-pulse" />
+            Broth on the stove since 4:18am
+          </span>
+          <span className="hero-sticker hidden md:inline-flex font-mono text-[10px] uppercase tracking-[0.25em] text-char/45">
+            Lower East Side, NYC · Twelve seats, no reservations
           </span>
         </div>
 
         <h1
-          className="display text-char leading-[0.85] tracking-tight"
+          className="display text-char leading-[0.84] tracking-tight max-w-[62vw] md:max-w-none"
           style={{ fontSize: "clamp(3rem, 13vw, 13rem)" }}
         >
           <span className="hero-reveal block overflow-hidden">
@@ -284,23 +287,39 @@ export function Hero() {
           </span>
         </h1>
 
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <p className="hero-meta max-w-md text-base md:text-lg text-char/75 leading-relaxed">
-            A tiny ramen bar on the corner of Allen & Stanton.
-            Tonkotsu broth simmered 18 hours. Noodles slapped fresh.
-            No reservations. Just{" "}
-            <span className="text-chili font-bold">slurp</span>.
-          </p>
-          <div className="hero-meta flex items-center gap-4">
+        <div className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
+          <div className="hero-meta max-w-md space-y-2 text-[15px] md:text-lg leading-snug text-char/85 font-mono">
+            <p className="flex items-baseline gap-3">
+              <span className="text-chili font-bold text-lg md:text-xl shrink-0">→</span>
+              <span>Pork bone broth. Simmered until sunrise.</span>
+            </p>
+            <p className="flex items-baseline gap-3">
+              <span className="text-chili font-bold text-lg md:text-xl shrink-0">→</span>
+              <span>Noodles cut while you watch. Eaten while they&apos;re shy.</span>
+            </p>
+            <p className="flex items-baseline gap-3">
+              <span className="text-chili font-bold text-lg md:text-xl shrink-0">→</span>
+              <span>
+                Twelve seats. One rule:{" "}
+                <span className="text-chili font-bold">slurp loud</span>.
+              </span>
+            </p>
+          </div>
+          <div className="hero-meta flex flex-col items-start gap-3">
             <a
               href="#menu"
-              className="group inline-flex items-center gap-3 rounded-full bg-char px-6 py-3.5 text-sm font-mono uppercase tracking-wider text-cream hover:bg-chili transition-colors"
+              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-char px-6 py-3.5 text-sm font-mono uppercase tracking-wider text-cream"
             >
-              See the bowls
-              <span className="grid place-items-center size-6 rounded-full bg-chili text-cream group-hover:bg-cream group-hover:text-chili transition-colors">
+              <span className="absolute inset-0 -translate-x-full bg-chili transition-transform duration-500 ease-out group-hover:translate-x-0" />
+              <span className="relative">See the bowls</span>
+              <span className="relative grid place-items-center size-6 rounded-full bg-chili text-cream transition-colors group-hover:bg-cream group-hover:text-chili">
                 ↓
               </span>
             </a>
+            <span className="hidden md:flex items-center gap-2 pl-2 text-[10px] font-mono uppercase tracking-[0.25em] text-char/40">
+              <span className="block h-px w-6 bg-char/30" />
+              six bowls. that&apos;s the whole menu.
+            </span>
           </div>
         </div>
       </div>
