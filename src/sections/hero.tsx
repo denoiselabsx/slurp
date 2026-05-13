@@ -40,29 +40,91 @@ function HeroCamera({ progress }: { progress: ProgressBox }) {
   return null;
 }
 
-function MouseTilt({ children }: { children: React.ReactNode }) {
+function BowlInteractor({ children }: { children: React.ReactNode }) {
   const group = useRef<THREE.Group>(null);
   const target = useRef({ x: 0, y: 0 });
+  // Track touch state separately so drag is sticky (doesn't reset on release).
+  const touchRotation = useRef({ x: 0, y: 0 });
+  const dragState = useRef<{
+    dragging: boolean;
+    lastX: number;
+    lastY: number;
+  }>({ dragging: false, lastX: 0, lastY: 0 });
   const { size } = useThree();
 
   useEffect(() => {
-    if (window.matchMedia("(pointer: coarse)").matches) return;
-    const onMove = (e: PointerEvent) => {
-      const nx = (e.clientX / size.width) * 2 - 1;
-      const ny = (e.clientY / size.height) * 2 - 1;
-      target.current.x = ny * 0.18;
-      target.current.y = nx * 0.45;
+    const isCoarse = window.matchMedia("(pointer: coarse)").matches;
+
+    if (!isCoarse) {
+      // Desktop: gentle parallax tilt following the cursor
+      const onMove = (e: PointerEvent) => {
+        const nx = (e.clientX / size.width) * 2 - 1;
+        const ny = (e.clientY / size.height) * 2 - 1;
+        target.current.x = ny * 0.18;
+        target.current.y = nx * 0.45;
+      };
+      window.addEventListener("pointermove", onMove);
+      return () => window.removeEventListener("pointermove", onMove);
+    }
+
+    // Touch: drag-to-rotate. We attach handlers to the hero section itself
+    // (not the canvas wrapper) so CTAs in the content layer still get tapped.
+    // We only consume horizontal drags; vertical drags pass through to scroll.
+    const wrapper = document.querySelector(".hero-section") as HTMLElement | null;
+    if (!wrapper) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      dragState.current.dragging = true;
+      dragState.current.lastX = t.clientX;
+      dragState.current.lastY = t.clientY;
     };
-    window.addEventListener("pointermove", onMove);
-    return () => window.removeEventListener("pointermove", onMove);
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragState.current.dragging) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - dragState.current.lastX;
+      const dy = t.clientY - dragState.current.lastY;
+      // If horizontal motion dominates, treat as rotate and consume the event
+      // so the page doesn't scroll. Otherwise let scroll happen.
+      if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+        e.preventDefault();
+        touchRotation.current.y += dx * 0.012;
+        touchRotation.current.x += dy * 0.008;
+        dragState.current.lastX = t.clientX;
+        dragState.current.lastY = t.clientY;
+      } else {
+        // It's a scroll gesture — release the drag
+        dragState.current.dragging = false;
+      }
+    };
+    const onTouchEnd = () => {
+      dragState.current.dragging = false;
+    };
+
+    wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
+    wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
+    wrapper.addEventListener("touchend", onTouchEnd);
+    wrapper.addEventListener("touchcancel", onTouchEnd);
+
+    return () => {
+      wrapper.removeEventListener("touchstart", onTouchStart);
+      wrapper.removeEventListener("touchmove", onTouchMove);
+      wrapper.removeEventListener("touchend", onTouchEnd);
+      wrapper.removeEventListener("touchcancel", onTouchEnd);
+    };
   }, [size.width, size.height]);
 
   useFrame(() => {
     if (!group.current) return;
+    // Desktop tilt is a soft easing to (target). Touch rotation is additive.
     group.current.rotation.x +=
-      (target.current.x - group.current.rotation.x) * 0.06;
+      (target.current.x + touchRotation.current.x - group.current.rotation.x) *
+      0.08;
     group.current.rotation.y +=
-      (target.current.y - group.current.rotation.y) * 0.06;
+      (target.current.y + touchRotation.current.y - group.current.rotation.y) *
+      0.08;
   });
 
   return <group ref={group}>{children}</group>;
@@ -191,9 +253,9 @@ export function Hero() {
             <PerspectiveCamera makeDefault position={[0.2, 1.0, 3.2]} fov={35} />
             <HeroCamera progress={progress.current} />
             <Suspense fallback={null}>
-              <MouseTilt>
+              <BowlInteractor>
                 <HeroBowlScene />
-              </MouseTilt>
+              </BowlInteractor>
             </Suspense>
           </Canvas>
         )}
